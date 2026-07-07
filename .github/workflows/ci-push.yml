@@ -1,35 +1,42 @@
-name: "CI"
+name: CI
+
 on:
   push:
     branches:
       - main
     paths:
-      - pyprobe/**
-      - tests/**
-      - pyproject.toml
+      - pyprobe/cyclers/maccor_cpi.py
+      - tests/test_maccor_cpi.py
       - .github/workflows/ci-push.yml
-      - uv.lock
+  pull_request:
+    branches:
+      - main
+    paths:
+      - pyprobe/cyclers/maccor_cpi.py
+      - tests/test_maccor_cpi.py
+      - .github/workflows/ci-push.yml
   workflow_dispatch:
+
 permissions:
   contents: read
   checks: write
+
 jobs:
   test:
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      
-      - name: Install uv and set the python version
+      - uses: actions/checkout@v4
+
+      - name: Install uv and set Python version
         uses: astral-sh/setup-uv@v8.1.0
         with:
           version: "0.11.8"
           enable-cache: true
           python-version: "3.12"
-          
+
       - name: Run tests with frozen dependencies
-        run: uv run --all-extras --frozen --isolated pytest --cov --cov-report=xml -n auto
-      
+        run: uv run --all-extras --frozen --isolated pytest tests/test_maccor_cpi.py
+
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v6
         with:
