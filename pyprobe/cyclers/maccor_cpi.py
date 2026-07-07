@@ -85,6 +85,37 @@ class MaccorCPICapacity(column_maps.ColumnMap):
         ).alias(self.pyprobe_name)
 
 
+class MaccorCPICurrent(column_maps.ColumnMap):
+    """Derive signed current from the current column using the MD mode column."""
+
+    def __init__(self, current_column: str, mode_column: str) -> None:
+        """Initialize the CPI current importer."""
+        super().__init__("Current [A]", [current_column, mode_column])
+        self.current_column = current_column
+        self.mode_column = mode_column
+
+    @property
+    def expr(self) -> pl.Expr:
+        """Return the expression to compute signed current from the mode column."""
+        current = self.get(self.current_column).cast(pl.Float64)
+        mode = (
+            self.get(self.mode_column)
+            .cast(pl.String)
+            .str.to_uppercase()
+            .str.strip_chars()
+            .fill_null("")
+        )
+        mode_sign = (
+            pl.when(mode.is_in(["C", "CHARGE"]))
+            .then(1)
+            .when(mode.is_in(["D", "DISCHARGE"]))
+            .then(-1)
+            .otherwise(current.sign())
+            .cast(pl.Int8)
+        )
+        return (current.abs() * mode_sign).alias(self.pyprobe_name)
+
+
 class MaccorCPI(BaseCycler):
     """A class to load and process CPI-style Maccor battery cycler data."""
 
@@ -92,7 +123,7 @@ class MaccorCPI(BaseCycler):
         MaccorCPIDateTime("DPT Time"),
         MaccorCPITime("Time [s]", "Test Time (sec)"),
         column_maps.CastAndRenameMap("Step", "Step", pl.UInt64),
-        column_maps.CastAndRenameMap("Current [A]", "Current", pl.Float64),
+        MaccorCPICurrent("Current", "MD"),
         column_maps.CastAndRenameMap("Voltage [V]", "Voltage", pl.Float64),
         MaccorCPICapacity("Capacity", "MD"),
         column_maps.CastAndRenameMap("Temperature [C]", "Temp 1", pl.Float64),

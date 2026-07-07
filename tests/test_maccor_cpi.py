@@ -22,5 +22,24 @@ def test_capacity_from_mode_column_uses_charge_and_discharge_segments() -> None:
     assert result == [0.0, 1.0, 2.0, 1.5, 1.0, 1.0]
 
 
+def test_current_from_mode_column_uses_charge_and_discharge_signs() -> None:
+    dataframe = pl.DataFrame(
+        {
+            "MD": ["C", "D", "R"],
+            "Current": [0.4, 0.5, -0.1],
+        }
+    )
+
+    importer = maccor_cpi.MaccorCPICurrent("Current", "MD")
+    importer.column_map = {
+        "MD": {"Cycler name": "MD", "Cycler unit": ""},
+        "Current": {"Cycler name": "Current", "Cycler unit": ""},
+    }
+
+    result = dataframe.select(importer.expr).to_series().to_list()
+
+    assert result == [0.4, -0.5, -0.1]
+
+
 def test_normalize_header_accepts_ahr_capacity_name() -> None:
     assert maccor_cpi.normalize_header("Capacity (AHr)") == "Capacity"

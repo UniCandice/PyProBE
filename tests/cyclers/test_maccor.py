@@ -44,9 +44,9 @@ def test_read_and_process_maccor_cpi(tmp_path, suffix):
     sample_rows = [
         ["metadata", "", ""],
         ["CPI export", "", ""],
-        ["Rec", "Step", "Test Time (sec)", "DPT Time", "Current (A)", "Voltage (V)", "EVTemp (C)"],
-        [1, 1, "0d 00:01:00", "27/03/2026 10:04", 0.1, 3.2, 25],
-        [2, 1, "0d 00:02:00", "27/03/2026 10:05", 0.2, 3.3, 24],
+        ["Rec", "Step", "Test Time (sec)", "DPT Time", "MD", "Current (A)", "Voltage (V)", "EVTemp (C)"],
+        [1, 1, "0d 00:01:00", "27/03/2026 10:04", "C", 0.1, 3.2, 25],
+        [2, 1, "0d 00:02:00", "27/03/2026 10:05", "D", 0.2, 3.3, 24],
     ]
 
     if suffix == "csv":
@@ -63,7 +63,7 @@ def test_read_and_process_maccor_cpi(tmp_path, suffix):
     result = cycler.get_pyprobe_dataframe()
 
     assert result["Time [s]"].to_list() == [60.0, 120.0]
-    assert result["Current [A]"].to_list() == [0.1, 0.2]
+    assert result["Current [A]"].to_list() == [0.1, -0.2]
     assert result["Voltage [V]"].to_list() == [3.2, 3.3]
     assert result["Temperature [C]"].to_list() == [25.0, 24.0]
     assert result["Date"].dt.strftime("%Y-%m-%d %H:%M:%S").to_list() == [
