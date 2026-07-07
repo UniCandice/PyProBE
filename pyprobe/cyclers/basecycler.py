@@ -199,11 +199,12 @@ class BaseCycler(BaseModel):
             ):
                 importers.append(importer.expr)
                 imported_columns.add(importer.pyprobe_name)
-        return (
-            self._imported_dataframe.select(importers)
-            .with_columns(self.event_expr())
-            .collect()
+        dataframe = self._imported_dataframe.select(importers).with_columns(
+            self.event_expr()
         )
+        if hasattr(dataframe, "collect"):
+            return dataframe.collect()
+        return dataframe
 
     def process(self) -> None:
         """Process the battery cycler data."""

@@ -20,6 +20,7 @@ from pyprobe.cyclers import (
     basytec,
     biologic,
     maccor,
+    maccor_cpi,
     neware,
     novonix,
 )
@@ -34,6 +35,7 @@ _cycler_dict = {
     "arbin": arbin.Arbin,
     "basytec": basytec.Basytec,
     "maccor": maccor.Maccor,
+    "maccor_cpi": maccor_cpi.MaccorCPI,
     "novonix": novonix.Novonix,
     "generic": basecycler.BaseCycler,
 }
@@ -48,6 +50,7 @@ def process_cycler_data(
         "arbin",
         "basytec",
         "maccor",
+        "maccor_cpi",
         "novonix",
         "generic",
     ],
