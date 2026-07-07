@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 import polars as pl
+from loguru import logger
 
 from pyprobe.cyclers import column_maps
 from pyprobe.cyclers.basecycler import BaseCycler
@@ -111,28 +112,36 @@ class MaccorCPI(BaseCycler):
         Returns:
             pl.DataFrame | pl.LazyFrame: The DataFrame.
         """
+        _ = header_row_index
         path = Path(filepath)
-        if path.suffix.lower() == ".csv":
-            rows = _read_csv_rows(filepath)
-        elif path.suffix.lower() == ".xlsx":
-            rows = _read_excel_rows(filepath)
+        if path.suffix.lower() in {".xlsx", ".xls"}:
+            try:
+                dataframe = pl.read_excel(
+                    filepath,
+                    sheet_name="Data",
+                    read_options={"header_row": 2},
+                ).lazy()
+            except Exception:
+                logger.warning(
+                    "Failed to read sheet 'Data' from %s. Falling back to first sheet.",
+                    filepath,
+                )
+                dataframe = pl.read_excel(
+                    filepath,
+                    read_options={"header_row": 2},
+                ).lazy()
+        elif path.suffix.lower() == ".csv":
+            dataframe = pl.scan_csv(
+                filepath,
+                skip_rows=2,
+                infer_schema=False,
+                null_values=["", "N/A", "NaN"],
+            )
         else:
             raise ValueError(f"Unsupported file extension: {path.suffix}")
 
-        header_row = _detect_header_row(rows, preferred_row=header_row_index)
-        header = [normalize_header(cell) for cell in rows[header_row]]
-        data_rows = [
-            _pad_row(row, len(header))
-            for row in rows[header_row + 1 :]
-            if row and any(cell.strip() for cell in row)
-        ]
-
-        dataframe = pl.DataFrame(
-            {
-                name: [row[idx] for row in data_rows]
-                for idx, name in enumerate(header)
-            }
-        )
+        normalized_columns = {col: normalize_header(col) for col in dataframe.collect_schema().names()}
+        dataframe = dataframe.rename(normalized_columns)
         return _normalize_dataframe(dataframe)
 
 
